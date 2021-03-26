@@ -22,38 +22,80 @@ subplot(222);imshow(P_abs,[]);title('log_{10}(1 + |P|)');set(gca,'visible','on')
 subplot(224);imshow(P_angle,[]);title('Arg(P)');set(gca,'visible','on');
 % Hemos representado las dos transformadas para comprobar que el resultado
 % es igual.
-%% LPF y HPF ideal
+%% Definición de LPF y HPF FIR con método del enventanado
+msg = {'Jaime García Martínez','Doble Grado Ingeniería Teleco. y Telema','EPS Linares'};
+% Importamos imagen
 x = double(imread('Images/lena.tif'))/255;
 [Y,U,V] = rgb2YUV(x);
-% Definimos las especificaciones del filtro
-B = 0.2;    %Frecuencia normalizada [0,1]
-M = 50;     %Número de filas 
-N = 50;     %Número de columnas 
-% Definimos la respuesta en frecuencia deseada
-[x,y] = freqspace([M,N],'meshgrid');
-r = sqrt(x.^2 + y.^2);
-H = ones(M,N);
-H(r > 0.2) = 0;
-figure;mesh(x,y,H);title('Respuesta en frecuencia deseada');
-xlabel('Frecuencia normalizada [-\pi,\pi] rad');
-ylabel('Frecuencia normalizada [-\pi,\pi] rad');
-% Definimos la ventana que vamos a emplear
-win = rectwin(M)*rectwin(N)';
-% Obtenemos la respuesta impulsiva
-h = fwind2(H,win);
-%% Definición de LPF y HPF FIR
-Ws = 0.7;      %Frecuencia de corte del filtro en radianes (normalizada [0,1])
-Aw = 0.3*pi;   %Ancho de banda de transición
-M = ceil(6.6*pi/Aw);   %Orden
-B = fir1(M,Ws,'high',hamming(M+1));  %Fir mediante enventanado
+FY_abs = log10(1 + fftshift(abs(fft2(Y))));
+% LPF specs:
+Ws = 0.35;               %Frecuencia de corte del filtro en radianes (normalizada [0,1])
+Aw = 0.05*pi;            %Ancho de banda de transición
+M = ceil(6.6*pi/Aw);     %Orden para ventana de Hamming
+% Cálculo de coeficientes del filtro 1D
+B = fir1(M,Ws,hamming(M+1));
+% Respuesta impulsiva del filtro en 2D
 h = ftrans2(B);
-[U,w] = freqz(B,1);
-U = 20*log10(abs(U));
-figure('Name','RespuestaFrecuencia');
-subplot(121);plot(w/pi,U);title('Respuesta en frecuencia 1D');
+% Filtramos la componente de Luminancia de la imagen y volvemos a convertir
+% a RGB
+Z = filter2(h,Y);
+FZ_abs = log10(1 + fftshift(abs(fft2(Z))));
+y = YUV2rgb(Z,U,V);
+% Representamos resultados
+[H1D,w] = freqz(B,1);
+H1D = abs(H1D);
+% Respuestas en frecuencia de los filtros
+figure('Name','LPF');
+subplot(121);plot(w/pi,H1D);title('Respuesta en frecuencia 1D');
 xlabel('Frecuencia normalizada ($\frac{\omega}{\pi}$)','Interpreter','latex');
-ylabel('Magnitud (dB)');grid on;
-subplot(122);freqz2(h);title('Respuesta en frecuencia 2D')
+ylabel('Magnitud');grid on;
+subplot(122);freqz2(h);title('Respuesta en frecuencia 2D');
+annotation('textbox',[.82,.8,.2,.2],'String',msg,'FitBoxToText','on');
+% Imágenes y espectros
+figure('Name','Imspctrm');
+subplot(231);imshow(x);title('Imagen original');
+subplot(232);imshow(h,[]);title('Respuesta impulsiva');
+subplot(233);imshow(y);title('Imagen filtrada');
+subplot(234);imshow(FY_abs,[]);title('log_{10}(1 + |FFT(Y)|)');
+subplot(235);imshow(log10(1 + fftshift(abs(fft2(h)))),[]);title('log_{10}(1 + |FFT(h)|)');
+subplot(236);imshow(FZ_abs,[]);title('log_{10}(1 + |FFT(Z)|)');
+annotation('textbox',[.82,.8,.2,.2],'String',msg,'FitBoxToText','on');
+% HPF specs:
+Ws = 0.16;               %Frecuencia de corte del filtro en radianes (normalizada [0,1])
+Aw = 0.05*pi;            %Ancho de banda de transición
+M = ceil(6.6*pi/Aw);     %Orden para ventana de Hamming
+% Cálculo de coeficientes del filtro 1D
+B = fir1(M,Ws,'high',hamming(M+1));
+% Respuesta impulsiva del filtro en 2D
+h = ftrans2(B);
+% Filtramos la componente de Luminancia de la imagen y volvemos a convertir
+% a RGB
+Z = filter2(h,Y);
+FZ_abs = log10(1 + fftshift(abs(fft2(Z))));
+y = YUV2rgb(Z,U,V);
+% Representamos resultados
+[H1D,w] = freqz(B,1);
+H1D = abs(H1D);
+% Respuestas en frecuencia de los filtros
+figure('Name','HPF');
+subplot(121);plot(w/pi,H1D);title('Respuesta en frecuencia 1D');
+xlabel('Frecuencia normalizada ($\frac{\omega}{\pi}$)','Interpreter','latex');
+ylabel('Magnitud');grid on;
+subplot(122);freqz2(h);title('Respuesta en frecuencia 2D');
+annotation('textbox',[.82,.8,.2,.2],'String',msg,'FitBoxToText','on');
+% Imágenes y espectros
+figure('Name','Imspctrm');
+subplot(231);imshow(Y);title('Luminancia imagen original');
+subplot(232);imshow(h,[]);title('Respuesta impulsiva');
+subplot(233);imshow(Z,[]);title('Luminancia imagen filtrada');
+subplot(234);imshow(FY_abs,[]);title('log_{10}(1 + |FFT(Y)|)');
+subplot(235);imshow(log10(1 + fftshift(abs(fft2(h)))),[]);title('log_{10}(1 + |FFT(h)|)');
+subplot(236);imshow(FZ_abs,[]);title('log_{10}(1 + |FFT(Z)|)');
+annotation('textbox',[.82,.8,.2,.2],'String',msg,'FitBoxToText','on');
+% Reconstrucción de imagen rgb filtrada
+figure('Name','RGBfiltered');
+imshow(y);title('Imagen RGB filtrada');
+annotation('textbox',[.82,.8,.2,.2],'String',msg,'FitBoxToText','on');
 %% Cálculo y representación de la DCT
 x = double(imread('Images/lena.tif'))/255;
 [Y,U,V] = rgb2YUV(x);
