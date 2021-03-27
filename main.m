@@ -105,3 +105,14 @@ figure('Name','DCT');
 subplot(131);imshow(Y);title('Imagen analizada');
 subplot(132);imshow(C);title('DCT con nuestro algoritmo');
 subplot(133);imshow(Z);title('DCT con la función de MatLab');
+%% Compresión de imágenes con DCT
+a = double(imread('Images/lena.tif'))/255;
+[Y,U,V] = rgb2YUV(a);
+b = 0.1;    %Porcentaje de coeficientes que se quiere conservar
+[Z,C,b] = dctComp(Y,b);
+figure;
+subplot(221);imshow(Y);
+subplot(223);imshow(dct2(Y));
+subplot(222);imshow(Z);
+subplot(224);imshow(C);
+fprintf('\nEl procentaje real de coeficientes conservados de la DCT es de %f \n',b);
