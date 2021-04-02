@@ -1,6 +1,6 @@
 function J = jpegCod(x)
-% JPEGCOD aplica una técnica de compresión de imagen similar al standard JPEG
-% haciendo uso de la DCT en subbloques de 8x8.
+% JPEGCOD aplica una técnica de codificación de imagen similar al standard
+% JPEG haciendo uso de la DCT en subbloques de 8x8.
 % INPUT: 
 %     x: matriz de entrada con valores uint8 (8 bits)
 % OUTPUT:
@@ -31,7 +31,7 @@ for fila = 1:8:P-7
     for col = 1:8:Q-7
         s = g(fila:fila+7,col:col+7);
         % DCT y redondeamos los coeficientes al entero más próximo
-        S = round(dct(s));        
+        S = round(dct2(s));        
         % Dividimos los coeficientes de la DCT entre los de la matriz
         % losheller y volvemos a redondear
         J(fila:fila+7,col:col+7) = round(S./los);
