@@ -71,8 +71,7 @@ M = ceil(6.6*pi/Aw);     %Orden para ventana de Hamming
 B = fir1(M,Ws,'high',hamming(M+1));
 % Respuesta impulsiva del filtro en 2D
 h = ftrans2(B);
-% Filtramos la componente de Luminancia de la imagen y volvemos a convertir
-% a RGB
+% Filtramos la componente de Luminancia de la imagen
 Z = filter2(h,Y);
 FZ_abs = log10(1 + fftshift(abs(fft2(Z))));
 % Representamos resultados
@@ -146,47 +145,61 @@ subplot(233);imshow(Z);title('Luminancia imagen filtrada');
 subplot(236);imshow(FZ_abs,[]);title('log_{10}(1 + |FFT(Z)|)');
 figure('Name','Luminancia HPF');
 subplot(121);imshow(Z);title('Luminancia imagen filtrada con HPF gaussiano');
-subplot(122);imshow(Z,[]);title('Luminancia imagen filtrada ajustando límites de escala de grises')
+subplot(122);imshow(Z,[]);title('Luminancia imagen filtrada ajustando límites de escala de grises');
 %% Cálculo y representación de la DCT
 x = double(imread('Images/lena.tif'))/255;
-[Y,U,V] = rgb2YUV(x);
+Y = rgb2YUV(x);
 C = FCT2D(Y);
 Z = dct2(Y);
 figure('Name','DCT');
 subplot(131);imshow(Y);title('Imagen analizada');
 subplot(132);imshow(C);title('DCT con nuestro algoritmo');
 subplot(133);imshow(Z);title('DCT con la función de MatLab');
+error = sum(Z(:)-C(:));
+fprintf('\nError de cálculo: %d\n',error);
 %% Compresión de imágenes con DCT
 a = double(imread('Images/lena.tif'))/255;
 [Y,U,V] = rgb2YUV(a);
 b = 0.1;    %Porcentaje de coeficientes que se quiere conservar
 [Z,C,b] = dctComp(Y,b);
 figure;
-subplot(221);imshow(Y);
-subplot(223);imshow(dct2(Y));
-subplot(222);imshow(Z);
-subplot(224);imshow(C);
-fprintf('\nEl procentaje real de coeficientes conservados de la DCT es de %f \n',b);
+subplot(221);imshow(Y);title('Imagen de entrada');
+subplot(223);imshow(dct2(Y));title('DCT imagen de entrada');
+subplot(222);imshow(Z);title('Imagen comprimida');
+subplot(224);imshow(C);title('DCT Imagen comprimida');
+fprintf('\nEl procentaje real de coeficientes conservados de la DCT es de %f\n',b*100);
 %% Eliminación de ruido de una imagen
 % Imagen ruidosa1
 im = double(imread('Images/ruidosa1.jpg'))/255;
 % Eliminamos el ruido interferente
 r = 0.5;    % radio del círculo de bajas frecuencias
 th = 0.0004;   % amplitud relativa del umbral de detección   
-[y] = denoise(im,th,r);
+y = denoise(im,th,r);
 figure;
-subplot(121);imshow(im);
-subplot(122);imshow(y);
+subplot(121);imshow(im);title('Imagen de entrada');
+subplot(122);imshow(y);title('Imagen de salida');
 % Imagen ruidosa2
 im = double(imread('Images/ruidosa2.jpg'))/255;
-r = 0.1;
-th = 2e-3;
-[y,X,~,H] = denoise(im,th,r);
+r = 0.115;
+th = 1.2e-3;
+y = denoise(im,th,r);
 figure;
-subplot(121);imshow(im);
-subplot(122);imshow(y);
-[wy,wx] = freqspace(size(H),'meshgrid');
+subplot(121);imshow(im);title('Imagen de entrada');
+subplot(122);imshow(y);title('Imagen de salida');
+%% DCT con algoritmo JPEG
+x = rgb2gray(imread('Images/lena.tif'));
+J = jpegCod(x);
+[M,N] = size(J);
+zeroPx = sum(J(:) == 0);
+fprintf('El número total de píxeles con valor 0 es de %i,\n', zeroPx);
+fprintf('que supone un %f %% de los píxeles totales de la imagen.\n',zeroPx/(M*N)*100);
+u = jpegDeco(J);
+error = uint8(abs((double(x) - double(u)))./double(x)*255);
 figure;
-subplot(131);mesh(wx,wy,log10(1 + abs(X)));
-subplot(132);mesh(wx,wy,H);
-subplot(133);mesh(wx,wy,log10(1 + abs(fftshift(fft2(y)))));
+subplot(211);imshow(x);title('Imagen de entrada');
+subplot(223);imshow(J);title('Imagen codificada');
+subplot(224);imshow(u);title('Imagen decodificada');
+figure;
+imshow(error);title('Error relativo de codificación')
+colormap(gca,summer(256));
+colorbar(gca);
